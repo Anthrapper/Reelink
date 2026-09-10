@@ -12,8 +12,8 @@
                 "changelog": "Initial release. Groups duplicate series by provider IDs, merges repeated movie and episode versions, and adds a visual merge preview with per-group and per-item selection.",
                 "targetAbi": "12.0.0.0",
                 "sourceUrl": "https://raw.githubusercontent.com/Anthrapper/Reelink/main/repo/reelink/reelink_0.0.1.0.zip",
-                "checksum": "a457db86991fe83d10796802ef023e24",
-                "timestamp": "2026-09-10T06:59:42Z"
+                "checksum": "f1125c532c11c7800912986445f47449",
+                "timestamp": "2026-09-10T08:17:39Z"
             }
         ]
     }
