@@ -6,3 +6,4 @@
 *.suo
 artifacts/
 .omp/
+repo/*/
