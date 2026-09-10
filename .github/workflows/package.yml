@@ -149,7 +149,9 @@ jobs:
           python3 -m venv jprm-venv
           jprm-venv/bin/pip install --quiet jprm==1.1.0
           mkdir -p repo
-          jprm-venv/bin/jprm repo init repo
+          if [ ! -f repo/manifest.json ]; then
+            jprm-venv/bin/jprm repo init repo
+          fi
           jprm-venv/bin/jprm repo add \
             --url "https://raw.githubusercontent.com/Anthrapper/Reelink/main/repo" \
             repo "$package_path"
