@@ -1,0 +1,20 @@
+[
+    {
+        "guid": "56994efb-d240-459a-a992-4000cb41e758",
+        "name": "Reelink",
+        "description": "Repairs Jellyfin presentation keys so duplicate Series records with matching TVDB, TMDB, or IMDb IDs appear as one show, and merges repeated movies and episodes into selectable playback versions that can be split apart again. Media files and library records are not deleted.\n",
+        "overview": "Groups duplicate shows and merges repeated movie and episode versions",
+        "owner": "jithu",
+        "category": "General",
+        "versions": [
+            {
+                "version": "0.0.1.0",
+                "changelog": "Initial release. Groups duplicate series by provider IDs, merges repeated movie and episode versions, and adds a visual merge preview with per-group and per-item selection.",
+                "targetAbi": "12.0.0.0",
+                "sourceUrl": "https://raw.githubusercontent.com/Anthrapper/Reelink/main/repo/reelink/reelink_0.0.1.0.zip",
+                "checksum": "a457db86991fe83d10796802ef023e24",
+                "timestamp": "2026-09-10T06:59:42Z"
+            }
+        ]
+    }
+]
