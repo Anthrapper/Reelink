@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Reelink</title>
+</head>
+<body>
+<div id="ReelinkConfigPage" data-role="page" class="page type-interior pluginConfigurationPage" data-require="emby-input,emby-button,emby-checkbox">
+    <div data-role="content">
+        <div class="content-primary">
+            <h2>Reelink</h2>
+            <p>Groups duplicate Series records by assigning a shared Jellyfin presentation key, and merges repeated movies and episodes into version groups. It never deletes media files or library records.</p>
+            <form id="ReelinkConfigForm">
+                <div class="inputContainer">
+                    <label class="inputLabel inputLabelUnfocused" for="ProviderIds">Provider priority</label>
+                    <input id="ProviderIds" name="ProviderIds" type="text" is="emby-input">
+                    <div class="fieldDescription">Comma-separated provider names. The first shared ID determines the stable series group key. Default: Tvdb,Tmdb,Imdb.</div>
+                </div>
+                <div class="inputContainer">
+                    <label class="inputLabel inputLabelUnfocused" for="MinimumProviderMatches">Required matching IDs</label>
+                    <input id="MinimumProviderMatches" name="MinimumProviderMatches" type="number" min="1" is="emby-input">
+                    <div class="fieldDescription">Use 1 for ordinary duplicate repair. Raise this to 2 for stricter matching when both copies have multiple IDs.</div>
+                </div>
+                <div class="checkboxContainer checkboxContainer-withDescription">
+                    <label class="emby-checkbox-label">
+                        <input id="RunAfterLibraryScan" type="checkbox" is="emby-checkbox">
+                        <span>Run after each library scan</span>
+                    </label>
+                    <div class="fieldDescription">The task can always be run manually from Dashboard → Scheduled Tasks.</div>
+                </div>
+                <div class="checkboxContainer checkboxContainer-withDescription">
+                    <label class="emby-checkbox-label">
+                        <input id="PreviewOnly" type="checkbox" is="emby-checkbox">
+                        <span>Preview only</span>
+                    </label>
+                    <div class="fieldDescription">Log detected series groups without changing presentation keys. Also applies to selected series merges from this page.</div>
+                </div>
+                <button is="emby-button" type="submit" class="raised button-submit block emby-button">
+                    <span>Save</span>
+                </button>
+            </form>
+            <div>
+                <h3 class="checkboxListLabel">Preview and merge</h3>
+                <div class="fieldDescription">Scan for duplicates, review each proposed group with its titles and matched IDs, deselect anything you do not want merged, then apply only your selection.</div>
+                <div style="margin-top:1em;">
+                    <button is="emby-button" type="button" class="raised block" id="btnPreviewSeries"><span>Preview Duplicate Shows</span></button>
+                    <button is="emby-button" type="button" class="raised block" id="btnPreviewMovies"><span>Preview Movies</span></button>
+                    <button is="emby-button" type="button" class="raised block" id="btnPreviewEpisodes"><span>Preview Episodes</span></button>
+                </div>
+                <div id="divMergePreviewSummary" class="fieldDescription" style="margin-top:1em;"></div>
+                <div style="margin-top:.5em;">
+                    <button is="emby-button" type="button" class="raised block" id="btnSelectAllGroups"><span>Select All Groups</span></button>
+                    <button is="emby-button" type="button" class="raised block" id="btnClearAllGroups"><span>Clear All Groups</span></button>
+                    <button is="emby-button" type="button" class="raised button-submit block" id="btnMergeSelected"><span>Merge Selected</span></button>
+                </div>
+                <div id="divMergePreview" style="margin-top:1em;"></div>
+            </div>
+            <div>
+                <h3 class="checkboxListLabel">Split</h3>
+                <div class="fieldDescription">Splitting separates series previously grouped by Reelink, and separates movie and episode version groups back into individual items. These actions apply immediately.</div>
+                <div style="margin-top:1em;">
+                    <button is="emby-button" type="button" class="raised block" id="btnSplitSeries"><span>Split Duplicate Shows</span></button>
+                    <button is="emby-button" type="button" class="raised block" id="btnSplitMovies"><span>Split All Movies</span></button>
+                    <button is="emby-button" type="button" class="raised block" id="btnSplitEpisodes"><span>Split All Episodes</span></button>
+                </div>
+            </div>
+            <div>
+                <h3 class="checkboxListLabel">Exclude locations from version merging:</h3>
+                <div id="divLibraryLocations" class="paperList checkboxList checkboxList-paperList">
+                </div>
+                <button is="emby-button" type="button" class="raised button-submit block" id="btnSaveExcluded"><span>Save Exclusions</span></button>
+            </div>
+        </div>
+    </div>
+    <script type="text/javascript">
+        (function () {
+            const pluginId = '56994efb-d240-459a-a992-4000cb41e758';
+            const page = document.querySelector('#ReelinkConfigPage');
+            const form = document.querySelector('#ReelinkConfigForm');
+            let currentPreview = { kind: null, label: '', groups: [] };
+
+            const previewPaths = {
+                series: { preview: 'Reelink/PreviewSeries', merge: 'Reelink/MergeSelectedSeries', label: 'duplicate shows' },
+                movie: { preview: 'Reelink/PreviewMovies', merge: 'Reelink/MergeSelectedMovies', label: 'movies' },
+                episode: { preview: 'Reelink/PreviewEpisodes', merge: 'Reelink/MergeSelectedEpisodes', label: 'episodes' }
+            };
+
+            function postAction(path, message) {
+                Dashboard.showLoadingMsg();
+                ApiClient.fetch({ url: ApiClient.getUrl(path), type: 'POST' }).then(function () {
+                    Dashboard.hideLoadingMsg();
+                    Dashboard.alert(message);
+                }).catch(function () {
+                    Dashboard.hideLoadingMsg();
+                    Dashboard.alert('Unexpected error occurred!');
+                });
+            }
+
+            function escapeHtml(value) {
+                return String(value == null ? '' : value)
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#39;');
+            }
+
+            function itemLabel(item) {
+                let label = item.title || item.id;
+                if (item.year) {
+                    label += ' (' + item.year + ')';
+                }
+                if (item.isProposedPrimary) {
+                    label += ' — primary version';
+                }
+                return label;
+            }
+
+            function providerIdText(item) {
+                const ids = item.providerIds || {};
+                const parts = Object.keys(ids).map(function (key) {
+                    return key + ': ' + ids[key];
+                });
+                return parts.join(', ');
+            }
+
+            function matchedIdText(group) {
+                const matched = group.matchedIds || [];
+                if (!matched.length) {
+                    return 'no shared identity';
+                }
+                return matched.map(function (identity) {
+                    return identity.provider + ' ' + identity.value;
+                }).join(', ');
+            }
+
+            function loadPreview(kind) {
+                const paths = previewPaths[kind];
+                Dashboard.showLoadingMsg();
+                ApiClient.fetch({ url: ApiClient.getUrl(paths.preview), type: 'GET' })
+                    .then(function (response) {
+                        if (!response.ok) {
+                            throw new Error('Preview request failed');
+                        }
+                        return response.json();
+                    })
+                    .then(function (groups) {
+                        currentPreview = { kind: kind, label: paths.label, groups: groups || [] };
+                        renderPreview();
+                        Dashboard.hideLoadingMsg();
+                    })
+                    .catch(function () {
+                        Dashboard.hideLoadingMsg();
+                        Dashboard.alert('Failed to load the preview. Check the server log for details.');
+                    });
+            }
+
+            function renderPreview() {
+                const container = page.querySelector('#divMergePreview');
+                const summary = page.querySelector('#divMergePreviewSummary');
+                if (!currentPreview.kind) {
+                    container.innerHTML = '';
+                    summary.textContent = 'Choose a scan above to preview duplicate groups.';
+                    return;
+                }
+
+                const groups = currentPreview.groups;
+                const itemCount = groups.reduce(function (total, group) {
+                    return total + (group.items || []).length;
+                }, 0);
+                summary.textContent = groups.length
+                    ? 'Found ' + groups.length + ' ' + currentPreview.label + ' group(s) containing ' + itemCount + ' item(s). Deselect groups or individual items, then choose Merge Selected.'
+                    : 'No duplicate ' + currentPreview.label + ' found.';
+
+                let html = '';
+                groups.forEach(function (group, groupIndex) {
+                    const items = group.items || [];
+                    const title = items.length ? itemLabel(items[0]) : 'Group';
+                    html += '<div class="reelinkGroup" data-group-index="' + groupIndex + '" style="border:1px solid #444;border-radius:.3em;padding:.75em;margin-bottom:.75em;">';
+                    html += '<label><input is="emby-checkbox" type="checkbox" class="reelinkGroupCheckbox" checked /><span>' + escapeHtml(title) + ' — ' + items.length + ' item(s)</span></label>';
+                    html += '<div class="fieldDescription">Matched: ' + escapeHtml(matchedIdText(group)) + '</div>';
+                    html += '<div style="margin-left:1.5em;margin-top:.25em;">';
+                    items.forEach(function (item) {
+                        const ids = providerIdText(item);
+                        html += '<label><input is="emby-checkbox" type="checkbox" class="reelinkItemCheckbox" checked data-item-id="' + escapeHtml(item.id) + '" /><span>' + escapeHtml(itemLabel(item)) + (ids ? ' — ' + escapeHtml(ids) : '') + '</span></label>';
+                    });
+                    html += '</div></div>';
+                });
+                container.innerHTML = html;
+                wirePreviewEvents(container);
+            }
+
+            function wirePreviewEvents(container) {
+                container.querySelectorAll('.reelinkGroup').forEach(function (groupElement) {
+                    const groupCheckbox = groupElement.querySelector('.reelinkGroupCheckbox');
+                    const itemCheckboxes = Array.prototype.slice.call(groupElement.querySelectorAll('.reelinkItemCheckbox'));
+
+                    groupCheckbox.addEventListener('change', function () {
+                        itemCheckboxes.forEach(function (checkbox) {
+                            checkbox.checked = groupCheckbox.checked;
+                        });
+                    });
+
+                    itemCheckboxes.forEach(function (checkbox) {
+                        checkbox.addEventListener('change', function () {
+                            groupCheckbox.checked = itemCheckboxes.every(function (item) {
+                                return item.checked;
+                            });
+                        });
+                    });
+                });
+            }
+
+            function setAllGroups(checked) {
+                page.querySelectorAll('#divMergePreview .reelinkGroupCheckbox').forEach(function (groupCheckbox) {
+                    groupCheckbox.checked = checked;
+                    groupCheckbox.dispatchEvent(new Event('change'));
+                });
+            }
+
+            function collectSelectedGroups() {
+                const selected = [];
+                page.querySelectorAll('#divMergePreview .reelinkGroup').forEach(function (groupElement) {
+                    const checkedIds = Array.prototype.filter.call(
+                        groupElement.querySelectorAll('.reelinkItemCheckbox'),
+                        function (checkbox) { return checkbox.checked; }
+                    ).map(function (checkbox) {
+                        return checkbox.getAttribute('data-item-id');
+                    });
+                    if (checkedIds.length >= 2) {
+                        selected.push({ itemIds: checkedIds });
+                    }
+                });
+                return selected;
+            }
+
+            function mergeSelected() {
+                if (!currentPreview.kind) {
+                    Dashboard.alert('Run a preview first.');
+                    return;
+                }
+
+                const selectedGroups = collectSelectedGroups();
+                if (!selectedGroups.length) {
+                    Dashboard.alert('Select at least one group with two or more items.');
+                    return;
+                }
+
+                const paths = previewPaths[currentPreview.kind];
+                Dashboard.showLoadingMsg();
+                ApiClient.fetch({
+                    url: ApiClient.getUrl(paths.merge),
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({ groups: selectedGroups })
+                }).then(function (response) {
+                    if (!response.ok) {
+                        return response.json().then(function (error) {
+                            throw new Error(error && error.error ? error.error : 'Merge failed.');
+                        });
+                    }
+                    return response.json();
+                }).then(function (result) {
+                    Dashboard.hideLoadingMsg();
+                    const changed = result.previewOnly
+                        ? 'Preview only is enabled, so nothing was changed.'
+                        : result.itemsChanged + ' item(s) changed.';
+                    Dashboard.alert('Processed ' + result.groupsMerged + ' group(s). ' + changed);
+                    loadPreview(currentPreview.kind);
+                }).catch(function (error) {
+                    Dashboard.hideLoadingMsg();
+                    Dashboard.alert(error && error.message ? error.message : 'Unexpected error occurred!');
+                });
+            }
+
+            page.querySelector('#btnPreviewSeries').addEventListener('click', function () { loadPreview('series'); });
+            page.querySelector('#btnPreviewMovies').addEventListener('click', function () { loadPreview('movie'); });
+            page.querySelector('#btnPreviewEpisodes').addEventListener('click', function () { loadPreview('episode'); });
+            page.querySelector('#btnSelectAllGroups').addEventListener('click', function () { setAllGroups(true); });
+            page.querySelector('#btnClearAllGroups').addEventListener('click', function () { setAllGroups(false); });
+            page.querySelector('#btnMergeSelected').addEventListener('click', mergeSelected);
+            page.querySelector('#btnSplitSeries').addEventListener('click', function () { postAction('Reelink/SplitSeries', 'Splitting duplicate shows...'); });
+            page.querySelector('#btnSplitMovies').addEventListener('click', function () { postAction('Reelink/SplitMovies', 'Splitting movies...'); });
+            page.querySelector('#btnSplitEpisodes').addEventListener('click', function () { postAction('Reelink/SplitEpisodes', 'Splitting episodes...'); });
+
+            page.addEventListener('pageshow', function () {
+                Dashboard.showLoadingMsg();
+                ApiClient.getPluginConfiguration(pluginId).then(function (config) {
+                    page.querySelector('#ProviderIds').value = config.ProviderIds || 'Tvdb,Tmdb,Imdb';
+                    page.querySelector('#MinimumProviderMatches').value = config.MinimumProviderMatches || 1;
+                    page.querySelector('#RunAfterLibraryScan').checked = config.RunAfterLibraryScan;
+                    page.querySelector('#PreviewOnly').checked = config.PreviewOnly;
+                    Dashboard.hideLoadingMsg();
+                });
+                ApiClient.getVirtualFolders().then(function (virtualFolders) {
+                    const container = page.querySelector('#divLibraryLocations');
+                    let html = '';
+                    virtualFolders.forEach(function (virtualFolder, folderIndex) {
+                        (virtualFolder.Locations || []).forEach(function (location, locationIndex) {
+                            const id = 'chkFolder' + folderIndex + '_' + locationIndex;
+                            html += '<label><input is="emby-checkbox" class="chkLibrary" type="checkbox" id="' + id + '" name="' + id + '" data-location="' + location + '" /><span>' + location + ' - ' + virtualFolder.Name + '</span></label>';
+                        });
+                    });
+                    container.innerHTML = html;
+                    ApiClient.getPluginConfiguration(pluginId).then(function (config) {
+                        (config.LocationsExcluded || []).forEach(function (excludedLocation) {
+                            const checkbox = container.querySelector('input[data-location="' + excludedLocation.replace(/"/g, '\\"') + '"]');
+                            if (checkbox) {
+                                checkbox.checked = true;
+                            }
+                        });
+                    });
+                });
+            });
+
+            form.addEventListener('submit', function (event) {
+                event.preventDefault();
+                Dashboard.showLoadingMsg();
+                ApiClient.getPluginConfiguration(pluginId).then(function (config) {
+                    config.ProviderIds = page.querySelector('#ProviderIds').value;
+                    config.MinimumProviderMatches = Number(page.querySelector('#MinimumProviderMatches').value);
+                    config.RunAfterLibraryScan = page.querySelector('#RunAfterLibraryScan').checked;
+                    config.PreviewOnly = page.querySelector('#PreviewOnly').checked;
+                    return ApiClient.updatePluginConfiguration(pluginId, config);
+                }).then(Dashboard.processPluginConfigurationUpdateResult);
+                return false;
+            });
+
+            page.querySelector('#btnSaveExcluded').addEventListener('click', function () {
+                const excluded = Array.prototype.map.call(
+                    page.querySelectorAll('.chkLibrary:checked'),
+                    function (checkbox) { return checkbox.getAttribute('data-location'); });
+                Dashboard.showLoadingMsg();
+                ApiClient.getPluginConfiguration(pluginId).then(function (config) {
+                    config.LocationsExcluded = excluded;
+                    return ApiClient.updatePluginConfiguration(pluginId, config);
+                }).then(Dashboard.processPluginConfigurationUpdateResult);
+            });
+        })();
+    </script>
+</div>
+</body>
+</html>
