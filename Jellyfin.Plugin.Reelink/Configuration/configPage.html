@@ -109,16 +109,45 @@
                 if (!value || typeof value !== 'object') {
                     return undefined;
                 }
-                return value[camelName] !== undefined ? value[camelName] : value[pascalName];
+                if (value[camelName] !== undefined) {
+                    return value[camelName];
+                }
+                if (value[pascalName] !== undefined) {
+                    return value[pascalName];
+                }
+
+                const expectedNames = [camelName.toLowerCase(), pascalName.toLowerCase()];
+                const actualName = Object.keys(value).find(function (key) {
+                    return expectedNames.indexOf(key.toLowerCase()) !== -1;
+                });
+                return actualName === undefined ? undefined : value[actualName];
+            }
+
+            function normalizeProviderIds(providerIds) {
+                if (!providerIds || typeof providerIds !== 'object') {
+                    return {};
+                }
+                if (!Array.isArray(providerIds)) {
+                    return providerIds;
+                }
+
+                return providerIds.reduce(function (result, entry) {
+                    const key = getProperty(entry, 'key', 'Key') || getProperty(entry, 'provider', 'Provider');
+                    const value = getProperty(entry, 'value', 'Value');
+                    if (key && value != null) {
+                        result[key] = value;
+                    }
+                    return result;
+                }, {});
             }
 
             function normalizePreviewItem(item) {
                 item = item || {};
                 return {
                     id: getProperty(item, 'id', 'Id'),
-                    title: getProperty(item, 'title', 'Title'),
-                    year: getProperty(item, 'year', 'Year'),
-                    providerIds: getProperty(item, 'providerIds', 'ProviderIds') || {},
+                    title: getProperty(item, 'title', 'Title') || getProperty(item, 'name', 'Name'),
+                    year: getProperty(item, 'year', 'Year') || getProperty(item, 'productionYear', 'ProductionYear'),
+                    providerIds: normalizeProviderIds(getProperty(item, 'providerIds', 'ProviderIds')),
                     isProposedPrimary: getProperty(item, 'isProposedPrimary', 'IsProposedPrimary') === true
                 };
             }
@@ -140,6 +169,24 @@
                 };
             }
 
+            function itemImageUrl(item) {
+                if (!item.id) {
+                    return '';
+                }
+                if (typeof ApiClient.getImageUrl === 'function') {
+                    return ApiClient.getImageUrl(item.id, { type: 'Primary', maxWidth: 140, quality: 90 });
+                }
+                return ApiClient.getUrl('Items/' + encodeURIComponent(item.id) + '/Images/Primary', { maxWidth: 140, quality: 90 });
+            }
+
+            function itemImageHtml(item) {
+                const imageUrl = itemImageUrl(item);
+                if (!imageUrl) {
+                    return '<div style="width:70px;height:105px;display:flex;align-items:center;justify-content:center;background:#333;color:#aaa;border-radius:.25em;flex:none;">No image</div>';
+                }
+                return '<div style="position:relative;width:70px;height:105px;display:flex;align-items:center;justify-content:center;background:#333;color:#aaa;border-radius:.25em;overflow:hidden;flex:none;"><span>No image</span><img src="' + escapeHtml(imageUrl) + '" alt="" loading="lazy" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" onerror="this.remove()" /></div>';
+            }
+
             function itemLabel(item) {
                 let label = item.title || item.id || 'Unnamed item';
                 if (item.year) {
@@ -153,7 +200,10 @@
 
             function providerIdText(item) {
                 const ids = item.providerIds || {};
-                const parts = Object.keys(ids).map(function (key) {
+                const parts = Object.keys(ids)
+                    .filter(function (key) { return ids[key] != null && String(ids[key]).trim().length; })
+                    .sort(function (left, right) { return left.localeCompare(right); })
+                    .map(function (key) {
                     return key + ': ' + ids[key];
                 });
                 return parts.join(', ');
@@ -165,7 +215,7 @@
                     return 'no shared identity';
                 }
                 return matched.map(function (identity) {
-                    return identity.provider + ' ' + identity.value;
+                    return identity.provider + ': ' + identity.value;
                 }).join(', ');
             }
 
@@ -216,11 +266,22 @@
                     const title = items.length ? itemLabel(items[0]) : 'Group';
                     html += '<div class="reelinkGroup" data-group-index="' + groupIndex + '" style="border:1px solid #444;border-radius:.3em;padding:.75em;margin-bottom:.75em;">';
                     html += '<label><input is="emby-checkbox" type="checkbox" class="reelinkGroupCheckbox" checked /><span>' + escapeHtml(title) + ' — ' + items.length + ' item(s)</span></label>';
-                    html += '<div class="fieldDescription">Matched: ' + escapeHtml(matchedIdText(group)) + '</div>';
-                    html += '<div style="margin-left:1.5em;margin-top:.25em;">';
+                    html += '<div class="fieldDescription" style="margin:.25em 0 .75em 1.5em;">Matched identity: ' + escapeHtml(matchedIdText(group)) + '</div>';
+                    html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:.75em;margin-left:1.5em;">';
                     items.forEach(function (item) {
                         const ids = providerIdText(item);
-                        html += '<label><input is="emby-checkbox" type="checkbox" class="reelinkItemCheckbox" checked data-item-id="' + escapeHtml(item.id) + '" /><span>' + escapeHtml(itemLabel(item)) + (ids ? ' — ' + escapeHtml(ids) : '') + '</span></label>';
+                        html += '<div style="display:flex;gap:.75em;min-width:0;background:rgba(255,255,255,.04);padding:.5em;border-radius:.25em;">';
+                        html += itemImageHtml(item);
+                        html += '<label style="display:flex;align-items:flex-start;gap:.45em;min-width:0;">';
+                        html += '<input is="emby-checkbox" type="checkbox" class="reelinkItemCheckbox" checked data-item-id="' + escapeHtml(item.id) + '" />';
+                        html += '<span style="min-width:0;"><strong>' + escapeHtml(item.title || 'Unnamed item') + '</strong>';
+                        html += '<br /><span class="fieldDescription">Year: ' + escapeHtml(item.year || 'Unknown') + '</span>';
+                        html += '<br /><span class="fieldDescription">External IDs: ' + escapeHtml(ids || 'None') + '</span>';
+                        html += '<br /><span class="fieldDescription">Jellyfin ID: ' + escapeHtml(item.id || 'Unknown') + '</span>';
+                        if (item.isProposedPrimary) {
+                            html += '<br /><span class="fieldDescription">Proposed primary version</span>';
+                        }
+                        html += '</span></label></div>';
                     });
                     html += '</div></div>';
                 });
