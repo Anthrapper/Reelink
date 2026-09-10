@@ -72,7 +72,7 @@ jobs:
               expected_metadata = {
                   "name": "Reelink",
                   "guid": "56994efb-d240-459a-a992-4000cb41e758",
-                  "version": "0.0.1",
+                  "version": "0.0.1.0",
                   "targetAbi": "12.0.0.0",
               }
               for key, expected in expected_metadata.items():
