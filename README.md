@@ -8,10 +8,11 @@
 
 ## Install
 
-1. Push to GitHub; the **Build plugin package** workflow produces a Jellyfin-installable ZIP (artifact on every run, attached to Releases for `v*` tags).
-2. In Jellyfin 12, install the ZIP (or extract it so the DLL lands in a `Reelink` folder under the plugins directory) and restart.
-3. Open **Dashboard → Plugins → Reelink** to configure and run scans.
-4. Scheduled tasks: **Merge Duplicate Shows**, **Merge All Movies**, **Merge All Episodes** (24h interval, also configurable to run after each library scan).
+1. Push to GitHub; the **Build plugin package** workflow produces a Jellyfin-installable ZIP (artifact on every run, attached to Releases for `v*` tags, and committed under `repo/` on `main` as a plugin repository).
+2. In Jellyfin 12, add the repository: **Dashboard → Plugins → Repositories → +**, paste `https://raw.githubusercontent.com/Anthrapper/Reelink/main/manifest.json`, then install **Reelink** from the catalog.
+3. Alternatively, install the ZIP manually (or extract it so the DLL lands in a `Reelink` folder under the plugins directory) and restart.
+4. Open **Dashboard → Plugins → Reelink** to configure and run scans.
+5. Scheduled tasks: **Merge Duplicate Shows**, **Merge All Movies**, **Merge All Episodes** (24h interval, also configurable to run after each library scan).
 
 ## Build
 
