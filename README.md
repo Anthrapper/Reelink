@@ -8,7 +8,7 @@
 
 ## Install
 
-1. Push to GitHub; the **Build plugin package** workflow produces a Jellyfin-installable ZIP (artifact on every run, attached to Releases for `v*` tags, and committed under `repo/` on `main` as a plugin repository).
+1. Pushes and pull requests build and validate a Jellyfin-installable ZIP and retain it as a workflow artifact. To publish an update, increment `version` in `build.yaml`, update its changelog, and push a matching tag such as `v0.0.2.0`. The tag workflow creates a GitHub Release and updates `repo/manifest.json` with the release-asset URL.
 2. In Jellyfin 12, add the repository: **Dashboard → Plugins → Repositories → +**, paste the manifest URL below, then install **Reelink** from the catalog:
 
    ```
