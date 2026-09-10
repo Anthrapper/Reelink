@@ -105,8 +105,43 @@
                     .replace(/'/g, '&#39;');
             }
 
+            function getProperty(value, camelName, pascalName) {
+                if (!value || typeof value !== 'object') {
+                    return undefined;
+                }
+                return value[camelName] !== undefined ? value[camelName] : value[pascalName];
+            }
+
+            function normalizePreviewItem(item) {
+                item = item || {};
+                return {
+                    id: getProperty(item, 'id', 'Id'),
+                    title: getProperty(item, 'title', 'Title'),
+                    year: getProperty(item, 'year', 'Year'),
+                    providerIds: getProperty(item, 'providerIds', 'ProviderIds') || {},
+                    isProposedPrimary: getProperty(item, 'isProposedPrimary', 'IsProposedPrimary') === true
+                };
+            }
+
+            function normalizePreviewGroup(group) {
+                group = group || {};
+                const rawItems = getProperty(group, 'items', 'Items');
+                const rawMatchedIds = getProperty(group, 'matchedIds', 'MatchedIds');
+                return {
+                    groupId: getProperty(group, 'groupId', 'GroupId'),
+                    kind: getProperty(group, 'kind', 'Kind'),
+                    matchedIds: Array.isArray(rawMatchedIds) ? rawMatchedIds.map(function (identity) {
+                        return {
+                            provider: getProperty(identity, 'provider', 'Provider'),
+                            value: getProperty(identity, 'value', 'Value')
+                        };
+                    }) : [],
+                    items: Array.isArray(rawItems) ? rawItems.map(normalizePreviewItem) : []
+                };
+            }
+
             function itemLabel(item) {
-                let label = item.title || item.id;
+                let label = item.title || item.id || 'Unnamed item';
                 if (item.year) {
                     label += ' (' + item.year + ')';
                 }
@@ -145,7 +180,10 @@
                         return response.json();
                     })
                     .then(function (groups) {
-                        currentPreview = { kind: kind, label: paths.label, groups: groups || [] };
+                        if (!Array.isArray(groups)) {
+                            throw new Error('Preview response was not a group list');
+                        }
+                        currentPreview = { kind: kind, label: paths.label, groups: groups.map(normalizePreviewGroup) };
                         renderPreview();
                         Dashboard.hideLoadingMsg();
                     })
