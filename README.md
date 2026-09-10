@@ -12,7 +12,7 @@
 2. In Jellyfin 12, add the repository: **Dashboard → Plugins → Repositories → +**, paste the manifest URL below, then install **Reelink** from the catalog:
 
    ```
-   https://raw.githubusercontent.com/Anthrapper/Reelink/main/manifest.json
+   https://raw.githubusercontent.com/Anthrapper/Reelink/main/repo/manifest.json
    ```
 3. Alternatively, install the ZIP manually (or extract it so the DLL lands in a `Reelink` folder under the plugins directory) and restart.
 4. Open **Dashboard → Plugins → Reelink** to configure and run scans.

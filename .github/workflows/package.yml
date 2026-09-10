@@ -110,6 +110,7 @@ jobs:
         with:
           name: ${{ needs.package.outputs.artifact-name }}
           path: release
+          skip-decompress: true
 
       - name: Publish tagged release
         uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
@@ -119,7 +120,7 @@ jobs:
 
   publish-repo:
     name: Publish plugin repository manifest
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
+    if: github.event_name == 'push' && github.actor != 'github-actions[bot]' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
     needs: package
     runs-on: ubuntu-latest
     permissions:
@@ -136,17 +137,22 @@ jobs:
         with:
           name: ${{ needs.package.outputs.artifact-name }}
           path: release
+          skip-decompress: true
 
       - name: Generate repository manifest
         shell: bash
+        env:
+          PACKAGE_NAME: ${{ needs.package.outputs.artifact-name }}
         run: |
+          package_path="release/$PACKAGE_NAME"
+          test -f "$package_path"
           python3 -m venv jprm-venv
-          jprm-venv/bin/pip install --quiet jprm
+          jprm-venv/bin/pip install --quiet jprm==1.1.0
           mkdir -p repo
           jprm-venv/bin/jprm repo init repo
           jprm-venv/bin/jprm repo add \
-            --url "https://raw.githubusercontent.com/Anthrapper/Reelink/main" \
-            repo "$(ls release/*.zip | head -n 1)"
+            --url "https://raw.githubusercontent.com/Anthrapper/Reelink/main/repo" \
+            repo "$package_path"
 
       - name: Commit and push repository manifest
         shell: bash
