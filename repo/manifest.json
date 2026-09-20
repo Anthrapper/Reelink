@@ -9,6 +9,14 @@
         "imageUrl": "https://raw.githubusercontent.com/Anthrapper/Reelink/main/thumb.png",
         "versions": [
             {
+                "version": "0.0.5.0",
+                "changelog": "Fixes merge preview layout so long IDs wrap inside their cards instead of overlapping.",
+                "targetAbi": "12.0.0.0",
+                "sourceUrl": "https://github.com/Anthrapper/Reelink/releases/download/v0.0.5.0/reelink_0.0.5.0.zip",
+                "checksum": "5c19cf9e30be3885ec2d258d2c1d6e54",
+                "timestamp": "2026-09-20T10:03:44Z"
+            },
+            {
                 "version": "0.0.4.0",
                 "changelog": "Maintenance release with no functional changes.",
                 "targetAbi": "12.0.0.0",
