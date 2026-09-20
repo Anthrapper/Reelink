@@ -274,7 +274,7 @@
                         html += itemImageHtml(item);
                         html += '<label style="display:flex;align-items:flex-start;gap:.45em;min-width:0;">';
                         html += '<input is="emby-checkbox" type="checkbox" class="reelinkItemCheckbox" checked data-item-id="' + escapeHtml(item.id) + '" />';
-                        html += '<span style="min-width:0;"><strong>' + escapeHtml(item.title || 'Unnamed item') + '</strong>';
+                        html += '<span style="min-width:0;overflow-wrap:anywhere;"><strong>' + escapeHtml(item.title || 'Unnamed item') + '</strong>';
                         html += '<br /><span class="fieldDescription">Year: ' + escapeHtml(item.year || 'Unknown') + '</span>';
                         html += '<br /><span class="fieldDescription">External IDs: ' + escapeHtml(ids || 'None') + '</span>';
                         html += '<br /><span class="fieldDescription">Jellyfin ID: ' + escapeHtml(item.id || 'Unknown') + '</span>';
