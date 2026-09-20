@@ -9,6 +9,14 @@
         "imageUrl": "https://raw.githubusercontent.com/Anthrapper/Reelink/main/thumb.png",
         "versions": [
             {
+                "version": "0.0.6.0",
+                "changelog": "Moves the merge preview styles inside the config page element so they actually apply, fixing the overflowed and unstyled layout.",
+                "targetAbi": "12.0.0.0",
+                "sourceUrl": "https://github.com/Anthrapper/Reelink/releases/download/v0.0.6.0/reelink_0.0.6.0.zip",
+                "checksum": "4ff3bf035c2adf51a9b889f4fecf4a83",
+                "timestamp": "2026-09-20T11:24:51Z"
+            },
+            {
                 "version": "0.0.5.0",
                 "changelog": "Fixes merge preview layout so long IDs wrap inside their cards instead of overlapping.",
                 "targetAbi": "12.0.0.0",
