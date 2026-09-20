@@ -6,6 +6,7 @@
         "overview": "Groups duplicate shows and merges repeated movie and episode versions",
         "owner": "ant",
         "category": "General",
+        "imageUrl": "https://raw.githubusercontent.com/Anthrapper/Reelink/main/thumb.png",
         "versions": [
             {
                 "version": "0.0.2.0",

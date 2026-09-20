@@ -1,7 +1,7 @@
 ---
 name: "Reelink"
 guid: "56994efb-d240-459a-a992-4000cb41e758"
-version: "0.0.2.0"
+version: "0.0.3.0"
 targetAbi: "12.0.0.0"
 framework: "net10.0"
 overview: "Groups duplicate shows and merges repeated movie and episode versions"
@@ -12,6 +12,7 @@ description: >
   Media files and library records are not deleted.
 category: "General"
 owner: "ant"
+imageUrl: "https://raw.githubusercontent.com/Anthrapper/Reelink/main/thumb.png"
 artifacts:
   - "Jellyfin.Plugin.Reelink.dll"
-changelog: "Fixes merge previews so groups reliably show their items across Jellyfin JSON casing profiles, and adds review cards with titles, poster thumbnails, years, external IDs, Jellyfin IDs, shared match identities, and proposed primary versions."
+changelog: "Adds the Reelink plugin thumbnail so the catalog listing shows its icon."
