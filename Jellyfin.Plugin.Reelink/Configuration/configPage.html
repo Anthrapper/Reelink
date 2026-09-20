@@ -6,6 +6,176 @@
 </head>
 <body>
 <div id="ReelinkConfigPage" data-role="page" class="page type-interior pluginConfigurationPage" data-require="emby-input,emby-button,emby-checkbox">
+    <style>
+        /* Reelink preview — scoped to this plugin page only. Lives inside the
+           page div because Jellyfin injects only this element and drops <head>. */
+        #ReelinkConfigPage {
+            max-width: 100%;
+            overflow-x: hidden;
+        }
+        #ReelinkConfigPage .content-primary {
+            max-width: 100%;
+            min-width: 0;
+        }
+        #ReelinkConfigPage #divMergePreview,
+        #ReelinkConfigPage #divMergePreviewSummary {
+            max-width: 100%;
+            min-width: 0;
+            overflow-wrap: anywhere;
+        }
+        #ReelinkConfigPage #divMergePreview {
+            container-type: inline-size;
+            overflow-x: hidden;
+        }
+        #ReelinkConfigPage .reelinkGroup {
+            min-width: 0;
+            max-width: 100%;
+            overflow: hidden;
+            border: 1px solid var(--theme-border-color, rgba(128, 128, 128, 0.45));
+            border-radius: 0.5em;
+            padding: 0.9em;
+            margin-bottom: 0.9em;
+            background: var(--theme-card-background, rgba(128, 128, 128, 0.08));
+        }
+        #ReelinkConfigPage .reelinkGroupLabel {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.5em;
+            min-width: 0;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        #ReelinkConfigPage .reelinkGroupLabel span:last-child {
+            min-width: 0;
+            overflow-wrap: anywhere;
+            word-break: break-word;
+            line-height: 1.35;
+        }
+        #ReelinkConfigPage .reelinkMatched {
+            margin: 0.35em 0 0.8em 0;
+            min-width: 0;
+            overflow-wrap: anywhere;
+            word-break: break-word;
+            line-height: 1.4;
+        }
+        #ReelinkConfigPage .reelinkItems {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr));
+            gap: 0.75em;
+            min-width: 0;
+        }
+        #ReelinkConfigPage .reelinkItem {
+            display: flex;
+            gap: 0.7em;
+            min-width: 0;
+            max-width: 100%;
+            overflow: hidden;
+            padding: 0.6em;
+            border-radius: 0.4em;
+            border: 1px solid var(--theme-border-color, rgba(128, 128, 128, 0.35));
+            background: var(--theme-item-background, rgba(128, 128, 128, 0.12));
+            cursor: pointer;
+        }
+        #ReelinkConfigPage .reelinkItem:has(.reelinkItemCheckbox:checked) {
+            border-color: var(--theme-primary-color, #00a4dc);
+            box-shadow: 0 0 0 1px var(--theme-primary-color, #00a4dc);
+        }
+        #ReelinkConfigPage .reelinkItemLabel {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.45em;
+            min-width: 0;
+            flex: 1;
+            cursor: pointer;
+        }
+        #ReelinkConfigPage .reelinkItemLabel input[type="checkbox"] {
+            flex: none;
+            margin-top: 0.2em;
+        }
+        #ReelinkConfigPage .reelinkItemText {
+            min-width: 0;
+            flex: 1;
+            overflow-wrap: anywhere;
+            word-break: break-word;
+            line-height: 1.4;
+        }
+        #ReelinkConfigPage .reelinkItemTitle {
+            display: block;
+            font-size: 1.02em;
+            line-height: 1.3;
+            margin-bottom: 0.2em;
+            overflow-wrap: anywhere;
+            word-break: break-word;
+        }
+        #ReelinkConfigPage .reelinkMeta {
+            display: block;
+            line-height: 1.45;
+        }
+        #ReelinkConfigPage .reelinkId {
+            font-family: ui-monospace, Consolas, monospace;
+            font-size: 0.85em;
+            opacity: 0.9;
+        }
+        #ReelinkConfigPage .reelinkPrimaryBadge {
+            display: inline-block;
+            margin-top: 0.4em;
+            padding: 0.15em 0.6em;
+            border-radius: 999px;
+            font-size: 0.82em;
+            font-weight: 600;
+            line-height: 1.5;
+            color: #fff;
+            background: var(--theme-primary-color, #00a4dc);
+            overflow-wrap: anywhere;
+        }
+        #ReelinkConfigPage .reelinkThumb {
+            position: relative;
+            width: 70px;
+            height: 105px;
+            flex: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            font-size: 0.8em;
+            color: var(--theme-secondary-text-color, #999);
+            background: var(--theme-thumb-background, rgba(128, 128, 128, 0.25));
+            border-radius: 0.3em;
+            overflow: hidden;
+        }
+        #ReelinkConfigPage .reelinkThumb img {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        /* Narrow panel: stack-friendly, thumbnails shrink, no wasted indent. */
+        @container (max-width: 480px) {
+            #ReelinkConfigPage .reelinkGroup {
+                padding: 0.7em;
+            }
+            #ReelinkConfigPage .reelinkItems {
+                grid-template-columns: 1fr;
+            }
+            #ReelinkConfigPage .reelinkThumb {
+                width: 52px;
+                height: 78px;
+            }
+        }
+        @media (max-width: 480px) {
+            #ReelinkConfigPage .reelinkGroup {
+                padding: 0.7em;
+            }
+            #ReelinkConfigPage .reelinkItems {
+                grid-template-columns: 1fr;
+            }
+            #ReelinkConfigPage .reelinkThumb {
+                width: 52px;
+                height: 78px;
+            }
+        }
+    </style>
     <div data-role="content">
         <div class="content-primary">
             <h2>Reelink</h2>
@@ -182,9 +352,9 @@
             function itemImageHtml(item) {
                 const imageUrl = itemImageUrl(item);
                 if (!imageUrl) {
-                    return '<div style="width:70px;height:105px;display:flex;align-items:center;justify-content:center;background:#333;color:#aaa;border-radius:.25em;flex:none;">No image</div>';
+                    return '<div class="reelinkThumb"><span>No image</span></div>';
                 }
-                return '<div style="position:relative;width:70px;height:105px;display:flex;align-items:center;justify-content:center;background:#333;color:#aaa;border-radius:.25em;overflow:hidden;flex:none;"><span>No image</span><img src="' + escapeHtml(imageUrl) + '" alt="" loading="lazy" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" onerror="this.remove()" /></div>';
+                return '<div class="reelinkThumb"><span>No image</span><img src="' + escapeHtml(imageUrl) + '" alt="" loading="lazy" onerror="this.remove()" /></div>';
             }
 
             function itemLabel(item) {
@@ -264,22 +434,22 @@
                 groups.forEach(function (group, groupIndex) {
                     const items = group.items || [];
                     const title = items.length ? itemLabel(items[0]) : 'Group';
-                    html += '<div class="reelinkGroup" data-group-index="' + groupIndex + '" style="border:1px solid #444;border-radius:.3em;padding:.75em;margin-bottom:.75em;">';
-                    html += '<label><input is="emby-checkbox" type="checkbox" class="reelinkGroupCheckbox" checked /><span>' + escapeHtml(title) + ' — ' + items.length + ' item(s)</span></label>';
-                    html += '<div class="fieldDescription" style="margin:.25em 0 .75em 1.5em;">Matched identity: ' + escapeHtml(matchedIdText(group)) + '</div>';
-                    html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:.75em;margin-left:1.5em;">';
+                    html += '<div class="reelinkGroup" data-group-index="' + groupIndex + '">';
+                    html += '<label class="reelinkGroupLabel"><input is="emby-checkbox" type="checkbox" class="reelinkGroupCheckbox" checked /><span>' + escapeHtml(title) + ' — ' + items.length + ' item(s)</span></label>';
+                    html += '<div class="fieldDescription reelinkMatched">Matched identity: ' + escapeHtml(matchedIdText(group)) + '</div>';
+                    html += '<div class="reelinkItems">';
                     items.forEach(function (item) {
                         const ids = providerIdText(item);
-                        html += '<div style="display:flex;gap:.75em;min-width:0;background:rgba(255,255,255,.04);padding:.5em;border-radius:.25em;">';
+                        html += '<div class="reelinkItem">';
                         html += itemImageHtml(item);
-                        html += '<label style="display:flex;align-items:flex-start;gap:.45em;min-width:0;">';
+                        html += '<label class="reelinkItemLabel">';
                         html += '<input is="emby-checkbox" type="checkbox" class="reelinkItemCheckbox" checked data-item-id="' + escapeHtml(item.id) + '" />';
-                        html += '<span style="min-width:0;overflow-wrap:anywhere;"><strong>' + escapeHtml(item.title || 'Unnamed item') + '</strong>';
-                        html += '<br /><span class="fieldDescription">Year: ' + escapeHtml(item.year || 'Unknown') + '</span>';
-                        html += '<br /><span class="fieldDescription">External IDs: ' + escapeHtml(ids || 'None') + '</span>';
-                        html += '<br /><span class="fieldDescription">Jellyfin ID: ' + escapeHtml(item.id || 'Unknown') + '</span>';
+                        html += '<span class="reelinkItemText"><strong class="reelinkItemTitle">' + escapeHtml(item.title || 'Unnamed item') + '</strong>';
+                        html += '<span class="fieldDescription reelinkMeta">Year: ' + escapeHtml(item.year || 'Unknown') + '</span>';
+                        html += '<span class="fieldDescription reelinkMeta">External IDs: ' + escapeHtml(ids || 'None') + '</span>';
+                        html += '<span class="fieldDescription reelinkMeta">Jellyfin ID: <span class="reelinkId">' + escapeHtml(item.id || 'Unknown') + '</span></span>';
                         if (item.isProposedPrimary) {
-                            html += '<br /><span class="fieldDescription">Proposed primary version</span>';
+                            html += '<span class="reelinkPrimaryBadge">Proposed primary version</span>';
                         }
                         html += '</span></label></div>';
                     });
