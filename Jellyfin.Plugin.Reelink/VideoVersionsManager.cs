@@ -474,6 +474,17 @@ public sealed class VideoVersionsManager
         var primary = SelectPrimaryVersion(items);
         var changed = 0;
 
+        // Release local-version ownership before clearing any old primary's links.
+        // Jellyfin deletes dropped local alternates that still belong to that primary.
+        foreach (var item in items)
+        {
+            if (item.OwnerId != Guid.Empty)
+            {
+                item.OwnerId = Guid.Empty;
+                await item.UpdateToRepositoryAsync(ItemUpdateType.MetadataEdit, cancellationToken).ConfigureAwait(false);
+            }
+        }
+
         foreach (var alternate in items.Where(i => !i.Id.Equals(primary.Id)))
         {
             _logger.LogInformation(
@@ -484,7 +495,7 @@ public sealed class VideoVersionsManager
                 primary.Id);
 
             alternate.SetPrimaryVersionId(primary.Id);
-            alternate.OwnerId = primary.Id;
+            alternate.OwnerId = Guid.Empty;
             alternate.LocalAlternateVersions = [];
             alternate.LinkedAlternateVersions = [];
 
@@ -492,13 +503,16 @@ public sealed class VideoVersionsManager
             changed++;
         }
 
-        primary.LocalAlternateVersions = items
+        // Local paths are rebuilt by scans; explicit merges must use persistent item-ID links.
+        primary.LocalAlternateVersions = [];
+        primary.LinkedAlternateVersions = items
             .Where(i => !i.Id.Equals(primary.Id))
-            .Select(i => i.Path)
-            .Where(p => !string.IsNullOrWhiteSpace(p))
-            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Select(i => new LinkedChild
+            {
+                ItemId = i.Id,
+                Type = LinkedChildType.LinkedAlternateVersion
+            })
             .ToArray();
-        primary.LinkedAlternateVersions = [];
         primary.SetPrimaryVersionId(null);
         primary.OwnerId = Guid.Empty;
 
@@ -639,6 +653,12 @@ public sealed class VideoVersionsManager
             if (!versions.TryAdd(version.Id, version))
             {
                 continue;
+            }
+
+            if (version.PrimaryVersionId is Guid primaryId
+                && _libraryManager.GetItemById<Video>(primaryId) is Video primary)
+            {
+                pending.Enqueue(primary);
             }
 
             foreach (var alternateId in _libraryManager.GetLocalAlternateVersionIds(version))

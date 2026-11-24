@@ -16,7 +16,7 @@
    ```
 3. Alternatively, install the ZIP manually (or extract it so the DLL lands in a `Reelink` folder under the plugins directory) and restart.
 4. Open **Dashboard → Plugins → Reelink** to configure and run scans.
-5. Scheduled tasks: **Merge Duplicate Shows**, **Merge All Movies**, **Merge All Episodes** (24h interval, also configurable to run after each library scan).
+5. Scheduled tasks: **Merge Duplicate Shows**, **Merge All Movies**, **Merge All Episodes** (24h interval; triggers are configurable in Jellyfin's scheduled-task settings).
 
 ## Build
 
@@ -27,6 +27,12 @@ dotnet build Jellyfin.Plugin.Reelink.slnx -c Release
 ```
 
 The assembly is written to `Jellyfin.Plugin.Reelink/bin/Release/net10.0/Jellyfin.Plugin.Reelink.dll`.
+
+Run the isolated movie/episode scan-persistence regression check:
+
+```sh
+dotnet run --file tests/VersionMergeRegression.cs -c Release
+```
 
 ## Matching rules
 
@@ -74,4 +80,5 @@ Every operation writes structured start, scan, completion, cancellation, and fai
 ## Notes
 
 - A normal metadata refresh may regenerate series presentation keys; keep **Run after each library scan** enabled to reapply.
-- Version groups use Jellyfin 12's linked-alternate-version storage: alternates point at a primary (chosen by highest default-stream resolution), and splitting restores them as independent items.
+- Movie and episode merges use persistent linked-alternate-version item IDs, not local file paths that Jellyfin rebuilds during scans. Alternates remain independent library records, and splitting restores them as separate items.
+- After upgrading, run the relevant merge operation once to convert existing groups to persistent links. Use selected merges if you want to preserve particular subsets; no automatic post-scan movie/episode bulk merge is performed.
