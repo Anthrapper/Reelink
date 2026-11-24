@@ -9,6 +9,14 @@
         "imageUrl": "https://raw.githubusercontent.com/Anthrapper/Reelink/main/thumb.png",
         "versions": [
             {
+                "version": "0.0.7.0",
+                "changelog": "Persists movie and episode merges with item-ID links that survive library scans, migrates owned versions without deleting records, and retains complete groups when re-merging selected alternates.",
+                "targetAbi": "12.0.0.0",
+                "sourceUrl": "https://github.com/Anthrapper/Reelink/releases/download/v0.0.7.0/reelink_0.0.7.0.zip",
+                "checksum": "f56193b14a02b3e0761657c61de5d2af",
+                "timestamp": "2026-11-24T10:07:37Z"
+            },
+            {
                 "version": "0.0.6.0",
                 "changelog": "Moves the merge preview styles inside the config page element so they actually apply, fixing the overflowed and unstyled layout.",
                 "targetAbi": "12.0.0.0",
